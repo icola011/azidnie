@@ -1,0 +1,445 @@
+{% extends "layout.html" %}
+
+{% block title %}Détail du projet - Gestion d'Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-project-diagram"></i> 
+            {{ projet.nom }}
+            <span class="badge {% if projet.etat == 'non_demarre' %}bg-secondary{% elif projet.etat == 'en_cours' %}bg-primary{% else %}bg-success{% endif %}">
+                {% if projet.etat == 'non_demarre' %}
+                    Non démarré
+                {% elif projet.etat == 'en_cours' %}
+                    En cours
+                {% else %}
+                    Terminé
+                {% endif %}
+            </span>
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group">
+            <a href="/projets/modifier/{{ projet.id }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+            <a href="/projets/supprimer/{{ projet.id }}" class="btn btn-danger" 
+               onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')">
+                <i class="fas fa-trash"></i> Supprimer
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informations du projet -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Informations du projet</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 40%">Nom :</th>
+                        <td>{{ projet.nom }}</td>
+                    </tr>
+                    <tr>
+                        <th>État :</th>
+                        <td>
+                            <span class="badge {% if projet.etat == 'non_demarre' %}bg-secondary{% elif projet.etat == 'en_cours' %}bg-primary{% else %}bg-success{% endif %}">
+                                {% if projet.etat == 'non_demarre' %}
+                                    Non démarré
+                                {% elif projet.etat == 'en_cours' %}
+                                    En cours
+                                {% else %}
+                                    Terminé
+                                {% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Date de début :</th>
+                        <td>{{ projet.date_debut }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date de fin :</th>
+                        <td>{{ projet.date_fin or 'Non définie' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Progression :</th>
+                        <td>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>{{ progression }}%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar {% if progression < 30 %}bg-danger{% elif progression < 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                     role="progressbar" style="width: {{ progression }}%" 
+                                     aria-valuenow="{{ progression }}" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Date de création :</th>
+                        <td>{{ projet.date_creation }}</td>
+                    </tr>
+                    <tr>
+                        <th>Dernière modification :</th>
+                        <td>{{ projet.date_modification }}</td>
+                    </tr>
+                </table>
+                
+                {% if projet.description %}
+                <div class="mt-3">
+                    <h6>Description :</h6>
+                    <p>{{ projet.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Coûts du projet -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Coûts du projet</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center mb-4">
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <h6>Matériaux</h6>
+                            <h4 class="text-primary">{{ format_mad(cout_materiaux) }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <h6>Charges</h6>
+                            <h4 class="text-danger">{{ format_mad(cout_charges) }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border rounded p-3">
+                            <h6>Total</h6>
+                            <h4 class="text-success">{{ format_mad(cout_total) }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-12">
+                        <canvas id="coutChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Tâches -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Tâches</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#tacheModal">
+                    <i class="fas fa-plus"></i> Ajouter
+                </button>
+            </div>
+            <div class="card-body">
+                {% if taches %}
+                <ul class="list-group">
+                    {% for tache in taches %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <form action="/projets/taches/toggle/{{ tache.id }}" method="post" class="d-inline">
+                                <input type="hidden" name="projet_id" value="{{ projet.id }}">
+                                <button type="submit" class="btn btn-sm {% if tache.terminee %}btn-success{% else %}btn-outline-secondary{% endif %} me-2">
+                                    <i class="fas {% if tache.terminee %}fa-check-square{% else %}fa-square{% endif %}"></i>
+                                </button>
+                            </form>
+                            <span class="{% if tache.terminee %}text-decoration-line-through text-muted{% endif %}">
+                                {{ tache.description }}
+                            </span>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger delete-tache" data-id="{{ tache.id }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="alert alert-info">
+                    Aucune tâche pour ce projet. Ajoutez-en une !
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Matériaux -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Matériaux</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#materiauModal">
+                    <i class="fas fa-plus"></i> Ajouter
+                </button>
+            </div>
+            <div class="card-body">
+                {% if materiaux %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th class="text-end">Quantité</th>
+                                <th class="text-end">Coût unitaire</th>
+                                <th class="text-end">Coût total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for materiau in materiaux %}
+                            <tr>
+                                <td>{{ materiau.nom }}</td>
+                                <td class="text-end">{{ materiau.quantite }}</td>
+                                <td class="text-end">{{ format_mad(materiau.cout_unitaire) }}</td>
+                                <td class="text-end">{{ format_mad(materiau.quantite * materiau.cout_unitaire) }}</td>
+                                <td class="text-end">
+                                    <a href="/projets/materiaux/supprimer/{{ materiau.id }}?projet_id={{ projet.id }}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce matériau ?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3" class="text-end">Total :</th>
+                                <th class="text-end">{{ format_mad(cout_materiaux) }}</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    Aucun matériau pour ce projet. Ajoutez-en un !
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Charges -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Charges</h5>
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#chargeModal">
+                    <i class="fas fa-plus"></i> Ajouter
+                </button>
+            </div>
+            <div class="card-body">
+                {% if charges %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>Type</th>
+                                <th class="text-end">Montant</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for charge in charges %}
+                            <tr>
+                                <td>{{ charge.description }}</td>
+                                <td>
+                                    <span class="badge bg-info text-dark">
+                                        {{ charge.type }}
+                                    </span>
+                                </td>
+                                <td class="text-end">{{ format_mad(charge.montant) }}</td>
+                                <td class="text-end">
+                                    <a href="/projets/charges/supprimer/{{ charge.id }}?projet_id={{ projet.id }}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette charge ?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2" class="text-end">Total :</th>
+                                <th class="text-end">{{ format_mad(cout_charges) }}</th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    Aucune charge pour ce projet. Ajoutez-en une !
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-4 mb-4">
+    <a href="/projets" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- Modal Tâche -->
+<div class="modal fade" id="tacheModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter une tâche</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/projets/taches/ajouter/{{ projet.id }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description *</label>
+                        <input type="text" class="form-control" id="description" name="description" required>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="terminee" name="terminee" value="true">
+                        <label class="form-check-label" for="terminee">Tâche terminée</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Matériau -->
+<div class="modal fade" id="materiauModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un matériau</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/projets/materiaux/ajouter/{{ projet.id }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantite" class="form-label">Quantité *</label>
+                        <input type="number" class="form-control" id="quantite" name="quantite" min="0.01" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="cout_unitaire" class="form-label">Coût unitaire (MAD) *</label>
+                        <input type="number" class="form-control" id="cout_unitaire" name="cout_unitaire" min="0.01" step="0.01" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Charge -->
+<div class="modal fade" id="chargeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter une charge</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/projets/charges/ajouter/{{ projet.id }}" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description *</label>
+                        <input type="text" class="form-control" id="description" name="description" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Type *</label>
+                        <select class="form-select" id="type" name="type" required>
+                            <option value="transport">Transport</option>
+                            <option value="main-d'œuvre">Main-d'œuvre</option>
+                            <option value="services externes">Services externes</option>
+                            <option value="fournitures">Fournitures</option>
+                            <option value="autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="montant" class="form-label">Montant (MAD) *</label>
+                        <input type="number" class="form-control" id="montant" name="montant" min="0.01" step="0.01" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Graphique des coûts
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('coutChart').getContext('2d');
+        const coutChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Matériaux', 'Charges'],
+                datasets: [{
+                    data: [{{ cout_materiaux }}, {{ cout_charges }}],
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 99, 132, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 99, 132, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    title: {
+                        display: true,
+                        text: 'Répartition des coûts'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

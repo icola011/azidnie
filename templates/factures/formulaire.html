@@ -1,0 +1,312 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {% if mode == 'creation' %}
+        Nouvelle facture - Gestion d'Entreprise
+    {% else %}
+        Modifier facture - Gestion d'Entreprise
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .article-row {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>
+            <i class="fas fa-file-invoice"></i> 
+            {% if mode == 'creation' %}
+                Nouvelle facture {{ type }}
+            {% else %}
+                Modifier facture {{ facture.numero }}
+            {% endif %}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" action="{% if mode == 'creation' %}/factures/creer{% else %}/factures/modifier/{{ facture.id }}{% endif %}">
+                    <!-- Informations de la facture -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="border-bottom pb-2">Informations générales</h5>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="numero" class="form-label">Numéro de facture *</label>
+                            <input type="text" class="form-control" id="numero" name="numero" 
+                                   value="{{ facture.numero if facture else '' }}" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="date" class="form-label">Date *</label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="{{ facture.date if facture else '' }}" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="type" class="form-label">Type *</label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="client" {% if type == 'client' or (facture and facture.type == 'client') %}selected{% endif %}>Client</option>
+                                <option value="fournisseur" {% if type == 'fournisseur' or (facture and facture.type == 'fournisseur') %}selected{% endif %}>Fournisseur</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label for="nom_client_fournisseur" class="form-label">Nom du client/fournisseur *</label>
+                            <input type="text" class="form-control" id="nom_client_fournisseur" name="nom_client_fournisseur" 
+                                   value="{{ facture.nom_client_fournisseur if facture else '' }}" required>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ facture.notes if facture else '' }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Articles -->
+                    <div class="row mb-4">
+                        <div class="col-md-12 d-flex justify-content-between align-items-center">
+                            <h5 class="border-bottom pb-2">Articles</h5>
+                            <button type="button" class="btn btn-success" id="add-article">
+                                <i class="fas fa-plus"></i> Ajouter un article
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-12 mt-3">
+                            <div id="articles-container">
+                                <!-- Les articles seront ajoutés ici dynamiquement -->
+                            </div>
+                            
+                            <!-- Champ caché pour stocker les articles au format JSON -->
+                            <input type="hidden" id="articles_json" name="articles_json" value="">
+                        </div>
+                    </div>
+                    
+                    <!-- Totaux -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="border-bottom pb-2">Totaux</h5>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Total HT</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="total_ht" readonly>
+                                <span class="input-group-text">MAD</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Total TVA</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="total_tva" readonly>
+                                <span class="input-group-text">MAD</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Total TTC</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="total_ttc" readonly>
+                                <span class="input-group-text">MAD</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons -->
+                    <div class="row">
+                        <div class="col-md-12 text-center">
+                            <a href="/factures" class="btn btn-secondary me-2">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Modèle pour un nouvel article
+    function createArticleRow(index, article = null) {
+        const nom = article ? article.nom : '';
+        const quantite = article ? article.quantite : 1;
+        const prix_unitaire = article ? article.prix_unitaire : 0;
+        const tva = article ? article.tva : 20;
+        
+        return `
+            <div class="article-row" data-index="${index}">
+                <div class="row">
+                    <div class="col-md-12 mb-2 d-flex justify-content-between">
+                        <h6>Article #${index + 1}</h6>
+                        <button type="button" class="btn btn-sm btn-danger remove-article">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="col-md-12 mb-2">
+                        <label class="form-label">Nom de l'article *</label>
+                        <input type="text" class="form-control article-nom" value="${nom}" required>
+                    </div>
+                    
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Quantité *</label>
+                        <input type="number" class="form-control article-quantite" value="${quantite}" min="0.01" step="0.01" required>
+                    </div>
+                    
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">Prix unitaire (MAD) *</label>
+                        <input type="number" class="form-control article-prix" value="${prix_unitaire}" min="0.01" step="0.01" required>
+                    </div>
+                    
+                    <div class="col-md-4 mb-2">
+                        <label class="form-label">TVA (%) *</label>
+                        <input type="number" class="form-control article-tva" value="${tva}" min="0" step="0.1" required>
+                    </div>
+                    
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Montant HT</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control article-montant-ht" readonly>
+                            <span class="input-group-text">MAD</span>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label">Montant TTC</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control article-montant-ttc" readonly>
+                            <span class="input-group-text">MAD</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Formater un nombre en MAD
+    function formatMAD(number) {
+        return number.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    
+    // Calculer les montants pour un article
+    function calculateArticleAmounts(row) {
+        const quantite = parseFloat(row.find('.article-quantite').val()) || 0;
+        const prix = parseFloat(row.find('.article-prix').val()) || 0;
+        const tva = parseFloat(row.find('.article-tva').val()) || 0;
+        
+        const montantHT = quantite * prix;
+        const montantTVA = montantHT * (tva / 100);
+        const montantTTC = montantHT + montantTVA;
+        
+        row.find('.article-montant-ht').val(formatMAD(montantHT));
+        row.find('.article-montant-ttc').val(formatMAD(montantTTC));
+        
+        return { montantHT, montantTVA, montantTTC };
+    }
+    
+    // Calculer les totaux de la facture
+    function calculateTotals() {
+        let totalHT = 0;
+        let totalTVA = 0;
+        let totalTTC = 0;
+        
+        $('.article-row').each(function() {
+            const amounts = calculateArticleAmounts($(this));
+            totalHT += amounts.montantHT;
+            totalTVA += amounts.montantTVA;
+            totalTTC += amounts.montantTTC;
+        });
+        
+        $('#total_ht').val(formatMAD(totalHT));
+        $('#total_tva').val(formatMAD(totalTVA));
+        $('#total_ttc').val(formatMAD(totalTTC));
+    }
+    
+    // Collecter les données des articles pour le formulaire
+    function collectArticlesData() {
+        const articles = [];
+        
+        $('.article-row').each(function() {
+            const row = $(this);
+            articles.push({
+                nom: row.find('.article-nom').val(),
+                quantite: parseFloat(row.find('.article-quantite').val()),
+                prix_unitaire: parseFloat(row.find('.article-prix').val()),
+                tva: parseFloat(row.find('.article-tva').val())
+            });
+        });
+        
+        return articles;
+    }
+    
+    $(document).ready(function() {
+        // Ajouter un article
+        $('#add-article').click(function() {
+            const index = $('.article-row').length;
+            $('#articles-container').append(createArticleRow(index));
+            calculateTotals();
+        });
+        
+        // Supprimer un article
+        $(document).on('click', '.remove-article', function() {
+            $(this).closest('.article-row').remove();
+            // Renuméroter les articles
+            $('.article-row').each(function(index) {
+                $(this).attr('data-index', index);
+                $(this).find('h6').text(`Article #${index + 1}`);
+            });
+            calculateTotals();
+        });
+        
+        // Recalculer les montants lors de la modification des valeurs
+        $(document).on('input', '.article-quantite, .article-prix, .article-tva', function() {
+            calculateTotals();
+        });
+        
+        // Soumettre le formulaire
+        $('form').submit(function() {
+            const articles = collectArticlesData();
+            $('#articles_json').val(JSON.stringify(articles));
+            return true;
+        });
+        
+        // Charger les articles existants si on est en mode modification
+        {% if facture and facture.articles %}
+            {% for article in facture.articles %}
+                $('#articles-container').append(createArticleRow({{ loop.index0 }}, {
+                    nom: "{{ article.nom }}",
+                    quantite: {{ article.quantite }},
+                    prix_unitaire: {{ article.prix_unitaire }},
+                    tva: {{ article.tva }}
+                }));
+            {% endfor %}
+        {% else %}
+            // Ajouter un article vide par défaut
+            $('#add-article').click();
+        {% endif %}
+        
+        // Calculer les totaux initiaux
+        calculateTotals();
+    });
+</script>
+{% endblock %}

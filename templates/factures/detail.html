@@ -1,0 +1,156 @@
+{% extends "layout.html" %}
+
+{% block title %}Détail de la facture - Gestion d'Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-file-invoice"></i> 
+            Facture {{ facture.numero }}
+            {% if facture.type == 'client' %}
+            <span class="badge bg-success">Client</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">Fournisseur</span>
+            {% endif %}
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <div class="btn-group">
+            <a href="/factures/modifier/{{ facture.id }}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Modifier
+            </a>
+            <a href="/factures/pdf/{{ facture.id }}" class="btn btn-info text-white">
+                <i class="fas fa-file-pdf"></i> Exporter PDF
+            </a>
+            <a href="/factures/supprimer/{{ facture.id }}" class="btn btn-danger" 
+               onclick="return confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')">
+                <i class="fas fa-trash"></i> Supprimer
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Informations de la facture</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th style="width: 40%">Numéro de facture :</th>
+                                <td>{{ facture.numero }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date :</th>
+                                <td>{{ facture.date }}</td>
+                            </tr>
+                            <tr>
+                                <th>Type :</th>
+                                <td>
+                                    {% if facture.type == 'client' %}
+                                    <span class="badge bg-success">Client</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">Fournisseur</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <th style="width: 40%">{{ 'Client' if facture.type == 'client' else 'Fournisseur' }} :</th>
+                                <td>{{ facture.nom_client_fournisseur }}</td>
+                            </tr>
+                            <tr>
+                                <th>Date de création :</th>
+                                <td>{{ facture.date_creation }}</td>
+                            </tr>
+                            <tr>
+                                <th>Dernière modification :</th>
+                                <td>{{ facture.date_modification }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Articles</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Article</th>
+                                <th class="text-end">Quantité</th>
+                                <th class="text-end">Prix unitaire</th>
+                                <th class="text-end">TVA (%)</th>
+                                <th class="text-end">Montant HT</th>
+                                <th class="text-end">Montant TTC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for article in articles %}
+                            {% set montant_ht = article.quantite * article.prix_unitaire %}
+                            {% set montant_tva = montant_ht * (article.tva / 100) %}
+                            {% set montant_ttc = montant_ht + montant_tva %}
+                            <tr>
+                                <td>{{ article.nom }}</td>
+                                <td class="text-end">{{ article.quantite }}</td>
+                                <td class="text-end">{{ format_mad(article.prix_unitaire) }}</td>
+                                <td class="text-end">{{ article.tva }}%</td>
+                                <td class="text-end">{{ format_mad(montant_ht) }}</td>
+                                <td class="text-end">{{ format_mad(montant_ttc) }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="4" class="text-end">Total HT :</th>
+                                <th class="text-end">{{ format_mad(total_ht) }}</th>
+                                <th></th>
+                            </tr>
+                            <tr>
+                                <th colspan="4" class="text-end">Total TVA :</th>
+                                <th class="text-end">{{ format_mad(total_tva) }}</th>
+                                <th></th>
+                            </tr>
+                            <tr>
+                                <th colspan="4" class="text-end">Total TTC :</th>
+                                <th></th>
+                                <th class="text-end">{{ format_mad(total_ttc) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {% if facture.notes %}
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <h5 class="mb-0">Notes</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ facture.notes }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center mt-4">
+            <a href="/factures" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

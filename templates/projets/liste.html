@@ -1,0 +1,121 @@
+{% extends "layout.html" %}
+
+{% block title %}Liste des projets - Gestion d'Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1>
+            <i class="fas fa-project-diagram"></i> 
+            {% if etat_filtre == 'non_demarre' %}
+                Projets non démarrés
+            {% elif etat_filtre == 'en_cours' %}
+                Projets en cours
+            {% elif etat_filtre == 'termine' %}
+                Projets terminés
+            {% else %}
+                Tous les projets
+            {% endif %}
+        </h1>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="/projets/creer" class="btn btn-success">
+            <i class="fas fa-plus"></i> Nouveau projet
+        </a>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="btn-group">
+                    <a href="/projets" class="btn btn-outline-success {% if not etat_filtre %}active{% endif %}">
+                        Tous
+                    </a>
+                    <a href="/projets?etat=non_demarre" class="btn btn-outline-success {% if etat_filtre == 'non_demarre' %}active{% endif %}">
+                        Non démarrés
+                    </a>
+                    <a href="/projets?etat=en_cours" class="btn btn-outline-success {% if etat_filtre == 'en_cours' %}active{% endif %}">
+                        En cours
+                    </a>
+                    <a href="/projets?etat=termine" class="btn btn-outline-success {% if etat_filtre == 'termine' %}active{% endif %}">
+                        Terminés
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des projets -->
+<div class="row">
+    <div class="col-md-12">
+        {% if projets %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for projet in projets %}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ projet.nom }}</h5>
+                        <span class="badge {% if projet.etat == 'non_demarre' %}bg-secondary{% elif projet.etat == 'en_cours' %}bg-primary{% else %}bg-success{% endif %}">
+                            {% if projet.etat == 'non_demarre' %}
+                                Non démarré
+                            {% elif projet.etat == 'en_cours' %}
+                                En cours
+                            {% else %}
+                                Terminé
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">{{ projet.description|truncate(100) }}</p>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>Progression</span>
+                                <span>{{ projet.progression }}%</span>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar {% if projet.progression < 30 %}bg-danger{% elif projet.progression < 70 %}bg-warning{% else %}bg-success{% endif %}" 
+                                     role="progressbar" style="width: {{ projet.progression }}%" 
+                                     aria-valuenow="{{ projet.progression }}" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Début: {{ projet.date_debut }}</small>
+                            <small class="text-muted">Fin: {{ projet.date_fin or 'Non définie' }}</small>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100">
+                            <a href="/projets/detail/{{ projet.id }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i> Détails
+                            </a>
+                            <a href="/projets/modifier/{{ projet.id }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-edit"></i> Modifier
+                            </a>
+                            <a href="/projets/supprimer/{{ projet.id }}" class="btn btn-sm btn-outline-danger" 
+                               onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce projet ?')">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Aucun projet trouvé.
+            {% if etat_filtre %}
+            <a href="/projets">Voir tous les projets</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

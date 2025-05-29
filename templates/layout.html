@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestion d'Entreprise{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">Gestion d'Entreprise</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.url.path == '/' %}active{% endif %}" href="/">
+                            <i class="fas fa-home"></i> Accueil
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.url.path.startswith('/factures') %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-file-invoice"></i> Factures
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/factures">Toutes les factures</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/factures?type=client">Factures clients</a></li>
+                            <li><a class="dropdown-item" href="/factures?type=fournisseur">Factures fournisseurs</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/factures/creer?type=client">Nouvelle facture client</a></li>
+                            <li><a class="dropdown-item" href="/factures/creer?type=fournisseur">Nouvelle facture fournisseur</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle {% if request.url.path.startswith('/projets') %}active{% endif %}" 
+                           href="#" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-project-diagram"></i> Projets
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/projets">Tous les projets</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/projets?etat=non_demarre">Non démarrés</a></li>
+                            <li><a class="dropdown-item" href="/projets?etat=en_cours">En cours</a></li>
+                            <li><a class="dropdown-item" href="/projets?etat=termine">Terminés</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/projets/creer">Nouveau projet</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.url.path.startswith('/dashboard') %}active{% endif %}" href="/dashboard">
+                            <i class="fas fa-chart-line"></i> Tableau de bord
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4 mb-5">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2023 Gestion d'Entreprise - Tous droits réservés</span>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', path='/js/script.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

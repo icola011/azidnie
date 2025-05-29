@@ -1,0 +1,224 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    {% if mode == 'creation' %}
+        Nouveau projet - Gestion d'Entreprise
+    {% else %}
+        Modifier projet - Gestion d'Entreprise
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tache-row {
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h1>
+            <i class="fas fa-project-diagram"></i> 
+            {% if mode == 'creation' %}
+                Nouveau projet
+            {% else %}
+                Modifier projet {{ projet.nom }}
+            {% endif %}
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="post" action="{% if mode == 'creation' %}/projets/creer{% else %}/projets/modifier/{{ projet.id }}{% endif %}">
+                    <!-- Informations du projet -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="border-bottom pb-2">Informations générales</h5>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="nom" class="form-label">Nom du projet *</label>
+                            <input type="text" class="form-control" id="nom" name="nom" 
+                                   value="{{ projet.nom if projet else '' }}" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="etat" class="form-label">État *</label>
+                            <select class="form-select" id="etat" name="etat" required>
+                                {% for etat in etats %}
+                                <option value="{{ etat }}" {% if projet and projet.etat == etat %}selected{% endif %}>
+                                    {% if etat == 'non_demarre' %}
+                                        Non démarré
+                                    {% elif etat == 'en_cours' %}
+                                        En cours
+                                    {% else %}
+                                        Terminé
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="date_debut" class="form-label">Date de début *</label>
+                            <input type="date" class="form-control" id="date_debut" name="date_debut" 
+                                   value="{{ projet.date_debut if projet else '' }}" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="date_fin" class="form-label">Date de fin</label>
+                            <input type="date" class="form-control" id="date_fin" name="date_fin" 
+                                   value="{{ projet.date_fin if projet else '' }}">
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label for="progression" class="form-label">Progression (%) *</label>
+                            <input type="range" class="form-range" id="progression" name="progression" 
+                                   min="0" max="100" step="5" value="{{ projet.progression if projet else 0 }}">
+                            <div class="d-flex justify-content-between">
+                                <span>0%</span>
+                                <span id="progression-value">{{ projet.progression if projet else 0 }}%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{ projet.description if projet else '' }}</textarea>
+                        </div>
+                    </div>
+                    
+                    <!-- Tâches -->
+                    <div class="row mb-4">
+                        <div class="col-md-12 d-flex justify-content-between align-items-center">
+                            <h5 class="border-bottom pb-2">Tâches</h5>
+                            <button type="button" class="btn btn-success" id="add-tache">
+                                <i class="fas fa-plus"></i> Ajouter une tâche
+                            </button>
+                        </div>
+                        
+                        <div class="col-md-12 mt-3">
+                            <div id="taches-container">
+                                <!-- Les tâches seront ajoutées ici dynamiquement -->
+                            </div>
+                            
+                            <!-- Champ caché pour stocker les tâches au format JSON -->
+                            <input type="hidden" id="taches_json" name="taches_json" value="">
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons -->
+                    <div class="row">
+                        <div class="col-md-12 text-center">
+                            <a href="/projets" class="btn btn-secondary me-2">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Enregistrer
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Modèle pour une nouvelle tâche
+    function createTacheRow(index, tache = null) {
+        const description = tache ? tache.description : '';
+        const terminee = tache ? tache.terminee : false;
+        
+        return `
+            <div class="tache-row" data-index="${index}">
+                <div class="row">
+                    <div class="col-md-12 mb-2 d-flex justify-content-between">
+                        <h6>Tâche #${index + 1}</h6>
+                        <button type="button" class="btn btn-sm btn-danger remove-tache">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="col-md-9 mb-2">
+                        <label class="form-label">Description *</label>
+                        <input type="text" class="form-control tache-description" value="${description}" required>
+                    </div>
+                    
+                    <div class="col-md-3 mb-2 d-flex align-items-end">
+                        <div class="form-check">
+                            <input class="form-check-input tache-terminee" type="checkbox" ${terminee ? 'checked' : ''}>
+                            <label class="form-check-label">Terminée</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Collecter les données des tâches pour le formulaire
+    function collectTachesData() {
+        const taches = [];
+        
+        $('.tache-row').each(function() {
+            const row = $(this);
+            taches.push({
+                description: row.find('.tache-description').val(),
+                terminee: row.find('.tache-terminee').is(':checked')
+            });
+        });
+        
+        return taches;
+    }
+    
+    $(document).ready(function() {
+        // Mettre à jour la valeur de progression affichée
+        $('#progression').on('input', function() {
+            $('#progression-value').text($(this).val() + '%');
+        });
+        
+        // Ajouter une tâche
+        $('#add-tache').click(function() {
+            const index = $('.tache-row').length;
+            $('#taches-container').append(createTacheRow(index));
+        });
+        
+        // Supprimer une tâche
+        $(document).on('click', '.remove-tache', function() {
+            $(this).closest('.tache-row').remove();
+            // Renuméroter les tâches
+            $('.tache-row').each(function(index) {
+                $(this).attr('data-index', index);
+                $(this).find('h6').text(`Tâche #${index + 1}`);
+            });
+        });
+        
+        // Soumettre le formulaire
+        $('form').submit(function() {
+            const taches = collectTachesData();
+            $('#taches_json').val(JSON.stringify(taches));
+            return true;
+        });
+        
+        // Charger les tâches existantes si on est en mode modification
+        {% if projet and taches %}
+            {% for tache in taches %}
+                $('#taches-container').append(createTacheRow({{ loop.index0 }}, {
+                    description: "{{ tache.description }}",
+                    terminee: {{ 'true' if tache.terminee else 'false' }}
+                }));
+            {% endfor %}
+        {% endif %}
+    });
+</script>
+{% endblock %}
