@@ -1,12 +1,16 @@
 # Netlify configuration file in YAML format
 
 build:
-  command: "pip install -r requirements.txt"
+  command: "echo 'Static site deployment - no build needed'"
   publish: "static"
   environment:
     PYTHON_VERSION: "3.9"
 
 redirects:
+  - from: "/api/*"
+    to: "/.netlify/functions/api"
+    status: 200
+
   - from: "/*"
     to: "/index.html"
     status: 200
