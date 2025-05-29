@@ -1,0 +1,28 @@
+# Netlify configuration file in YAML format
+
+build:
+  command: "pip install -r requirements.txt"
+  publish: "static"
+  environment:
+    PYTHON_VERSION: "3.9"
+
+redirects:
+  - from: "/*"
+    to: "/index.html"
+    status: 200
+
+functions:
+  directory: "functions"
+
+dev:
+  command: "uvicorn main:app --reload"
+  port: 8888
+  publish: "static"
+
+headers:
+  - for: "/*"
+    values:
+      X-Frame-Options: "DENY"
+      X-XSS-Protection: "1; mode=block"
+      Content-Security-Policy: "default-src 'self'"
+      X-Content-Type-Options: "nosniff"
